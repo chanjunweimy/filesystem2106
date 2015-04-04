@@ -13,6 +13,10 @@ class PackableMemory {
 
 	private static PackableMemory _packMem = null;
 	
+	private final int MASK = 0xff;
+	private final int BIT_PER_BYTE = 8;
+	private final int BYTE_PER_INT = 4;
+	
 	protected static PackableMemory getObject() {
 		if (_packMem == null) {
 			_packMem = new PackableMemory();
@@ -36,10 +40,10 @@ class PackableMemory {
 	// Bytes are masked out of the integer and stored in the array, working
 	// from right(least significant) to left (most significant).
 	protected void pack(int val, int loc) {
-		final int MASK = 0xff;
-		for (int i = 3; i >= 0; i--) {
+		
+		for (int i = BYTE_PER_INT - 1; i >= 0; i--) {
 			_mem[loc + i] = (byte) (val & MASK);
-			val = val >> 8;
+			val = val >> BIT_PER_BYTE;
 		}
 	}
 
@@ -49,10 +53,9 @@ class PackableMemory {
 	// Bytes are 'OR'ed into the integer, working from left (most significant)
 	// to right (least significant)
 	protected int unpack(int loc) {
-		final int MASK = 0xff;
 		int v = (int) _mem[loc] & MASK;
-		for (int i = 1; i < 4; i++) {
-			v = v << 8;
+		for (int i = 1; i < BYTE_PER_INT; i++) {
+			v = v << BIT_PER_BYTE;
 			v = v | ((int) _mem[loc + i] & MASK);
 		}
 		return v;
