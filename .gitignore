@@ -1,0 +1,10 @@
+.class
+.classpath
+bin/
+.java.orig
+
+.data?
+.log
+
+.project
+.settings/
