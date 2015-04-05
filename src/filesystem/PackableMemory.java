@@ -13,9 +13,10 @@ class PackableMemory {
 
 	private static PackableMemory _packMem = null;
 	
-	private final int MASK = 0xff;
-	private final int BIT_PER_BYTE = 8;
-	private final int BYTE_PER_INT = 4;
+	private static final int MASK = 0xff;
+	
+	public static final int BIT_PER_BYTE = 8;
+	public static final int BYTE_PER_INT = 4;
 	
 	protected static PackableMemory getObject() {
 		if (_packMem == null) {
