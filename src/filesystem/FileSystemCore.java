@@ -29,7 +29,7 @@ public class FileSystemCore {
 	private static final int INTEGER_PER_DESCRIPTOR = 4;
 	private static final int INTEGER_PER_FILE_DIRECTORY = 2;
 	
-	private static final int OFT_SIZE = 4;
+	public static final int OFT_SIZE = 4;
 		
 	public static FileSystemCore getObject() {
 		if (_fileSystem == null) {
@@ -66,12 +66,19 @@ public class FileSystemCore {
 		return true;
 	}
 	
-	public byte[] read(int index, int count) {
-		byte[] readByte = null;
-		return readByte;
+	public String read(int index, int count) {
+		String readString = null;
+		return readString;
 	}
 	
-	public boolean write(int index, int count) {
+	public boolean write(int index, String writeString, int count) {
+		char[] writeCharArray = writeString.toCharArray();
+		if (writeCharArray.length != 1) {
+			return false;
+		}
+		char writeChar = writeCharArray[0];
+		
+		
 		return true;
 	}
 	
@@ -84,11 +91,16 @@ public class FileSystemCore {
 		return directory;
 	}
 	
-	public boolean init(String filename) {
-		if (!_openFileTable[0].isFree()) {
-			return false;
+	public String init(String filename) {
+		if (filename == null) {
+			return null;
 		}
 		
+		if (!_openFileTable[0].isFree()) {
+			return null;
+		}
+		
+		String feedback = null;
 		Path dir = Paths.get(filename);
 		
 		boolean isSuccess;
@@ -98,20 +110,27 @@ public class FileSystemCore {
 		    byte[] fileArray = initializeFileArray();
 		    isSuccess = initializeLDisk(fileArray);
 		    isSuccess = isSuccess && writeFile(dir, fileArray);
+		    feedback = "disk initialized";
 		} catch (FileAlreadyExistsException x) {
 			isSuccess = loadFile(dir);
+			feedback = "disk restored";
 		} catch (IOException x) {
 			isSuccess = false;
+			feedback = null;
 		}
 		
 		if (isSuccess) {
 			_openFileTable[0].setDescriptorIndex(0);
 		}
 		
-		return isSuccess;
+		return feedback;
 	}
 	
-	public boolean save(String filename) {		
+	public boolean save(String filename) {	
+		if (filename == null) {
+			return false;
+		}
+		
 		if (_openFileTable[0].isFree()) {
 			return false;
 		}
