@@ -14,7 +14,7 @@ public class Shell {
 	private void execute(String[] args) {
 		FileSystemCore fileSystem = FileSystemCore.getObject();
 		
-		if (args == null) {
+		if (args == null || args.length == 0) {
 			Scanner reader = new Scanner(System.in);
 			getUserInputs(fileSystem, reader);
 			reader.close();
@@ -44,100 +44,236 @@ public class Shell {
 
 	private void getUserInputs(FileSystemCore fileSystem, Scanner reader) {
 		while(true) {
-			boolean isSuccess = false;
+			boolean isSuccess = true;
 			
 			String input = reader.nextLine();
 			input = input.trim();
 			
 			Scanner analyzer = new Scanner(input);
-			String command = analyzer.next();
-			StringBuffer feedback = new StringBuffer();
+			String command = "";
 			
+			if (analyzer.hasNext()) {
+				command = analyzer.next();
+			}
+			StringBuffer feedback = new StringBuffer();
+						
 			if ("exit".equals(command)) {
 				analyzer.close();
 				break;
 				
 			} else if ("cr".equals(command)) {
-				String filename = analyzer.next();
-				isSuccess = fileSystem.create(filename);
+				String filename = null;
+				if (analyzer.hasNext()) {
+					filename = analyzer.next();
+				} else {
+					isSuccess = false;
+				}
 				
-				feedback.append(filename);
-				feedback.append(" created");
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
 				
+				if (isSuccess) {
+					isSuccess = fileSystem.create(filename);
+					
+					feedback.append(filename);
+					feedback.append(" created");
+				}
 			} else if ("de".equals(command)) {
-				String filename = analyzer.next();
-				isSuccess = fileSystem.destroy(filename);
+				String filename = null;
+				if (analyzer.hasNext()) {
+					filename = analyzer.next();
+				} else {
+					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
 				
-				feedback.append(filename);
-				feedback.append(" destroyed");
+				if (isSuccess) {
+					isSuccess = fileSystem.destroy(filename);
+					
+					feedback.append(filename);
+					feedback.append(" destroyed");
+				}
 				
 			} else if ("op".equals(command)) {
-				String filename = analyzer.next();
-				int index = fileSystem.open(filename);
-				isSuccess = index >= 0 && index <= FileSystemCore.OFT_SIZE;
-				
-				feedback.append(filename);
-				feedback.append(" opened ");
-				feedback.append(index);
-			} else if ("cl".equals(command)) {
-				int index = analyzer.nextInt();
-				isSuccess = fileSystem.close(index);
-				
-				feedback.append(index);
-				feedback.append(" closed");
-			} else if ("rd".equals(command)) {
-				int index = analyzer.nextInt();
-				int count = analyzer.nextInt();
-				String readString = fileSystem.read(index, count);
-				
-				if (readString != null) {
-					isSuccess = true;
-					feedback.append(readString);
+				String filename = null;
+				if (analyzer.hasNext()) {
+					filename = analyzer.next();
 				} else {
 					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					int index = fileSystem.open(filename);
+					isSuccess = index >= 0 && index <= FileSystemCore.OFT_SIZE;
+					
+					feedback.append(filename);
+					feedback.append(" opened ");
+					feedback.append(index);
+				}
+			} else if ("cl".equals(command)) {
+				int index = FileSystemCore.ERROR_INDEX;
+				if (analyzer.hasNext()) {
+					index = analyzer.nextInt();
+				} else {
+					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					isSuccess = fileSystem.close(index);
+					feedback.append(index);
+					feedback.append(" closed");
+				}
+				
+				
+			} else if ("rd".equals(command)) {
+				int index = FileSystemCore.ERROR_INDEX;
+				int count = FileSystemCore.ERROR_INDEX;
+				
+				if (analyzer.hasNext()) {
+					index = analyzer.nextInt();
+				} else {
+					isSuccess = false;
+				}
+				
+				if (analyzer.hasNext()) {
+					count = analyzer.nextInt();
+				} else {
+					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					String readString = fileSystem.read(index, count);
+					
+					if (readString != null) {
+						isSuccess = true;
+						feedback.append(readString);
+					} else {
+						isSuccess = false;
+					}
 				}
 			} else if ("wr".equals(command)) {
-				int index = analyzer.nextInt();
-				String writeString = analyzer.next();
-				int count = analyzer.nextInt();
+				int index = FileSystemCore.ERROR_INDEX;
+				String writeString = null;
+				int count = FileSystemCore.ERROR_INDEX;
 				
-				isSuccess = fileSystem.write(index, writeString, count);
-				feedback.append(count);
-				feedback.append(" bytes written");
-			} else if ("sk".equals(command)) {
-				int index = analyzer.nextInt();
-				int pos = analyzer.nextInt();
-				
-				isSuccess = fileSystem.lseek(index, pos);
-				
-				feedback.append("position is ");
-				feedback.append(pos);
-			} else if ("dr".equals(command)) {
-				String[] directories = fileSystem.directory();
-				
-				if (directories != null) {
-					isSuccess = true;
-					for (int i = 0; i < directories.length; i++) {
-						feedback.append(directories[i]);
-						feedback.append(" ");
-					}
+				if (analyzer.hasNext()) {
+					index = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
-			} else if ("in".equals(command)) {
-				String filename = analyzer.next();
-				String msg = fileSystem.init(filename);
-				if (msg != null) {
-					isSuccess = true;
-					feedback.append(msg);
+				if (analyzer.hasNext()) {
+					writeString = analyzer.next();
 				} else {
 					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					count = analyzer.nextInt();
+				} else {
+					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					isSuccess = fileSystem.write(index, writeString, count);
+					feedback.append(count);
+					feedback.append(" bytes written");
+				}
+			} else if ("sk".equals(command)) {
+				int index = FileSystemCore.ERROR_INDEX;
+				int pos = FileSystemCore.ERROR_INDEX;
+				
+				if (analyzer.hasNext()) {
+					index = analyzer.nextInt();
+				} else {
+					isSuccess = false;
+				}
+				if (analyzer.hasNext()) {
+					index = analyzer.nextInt();
+				} else {
+					isSuccess = false;
+				}
+				
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					isSuccess = fileSystem.lseek(index, pos);
+					
+					feedback.append("position is ");
+					feedback.append(pos);
+				}
+			} else if ("dr".equals(command)) {
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					String[] directories = fileSystem.directory();
+					if (directories != null) {
+						isSuccess = true;
+						for (int i = 0; i < directories.length; i++) {
+							feedback.append(directories[i]);
+							feedback.append(" ");
+						}
+					} else {
+						isSuccess = false;
+					}
+				}
+				
+			} else if ("in".equals(command)) {
+				String filename = null;
+				if (analyzer.hasNext()) {
+					filename = analyzer.next();
+				} else {
+					isSuccess = false;
+				}
+				
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+				String msg = fileSystem.init(filename);
+					if (msg != null) {
+						isSuccess = true;
+						feedback.append(msg);
+					} else {
+						isSuccess = false;
+					}
 				}
 			} else if ("sv".equals(command)) {
-				String filename = analyzer.next();
-				isSuccess = fileSystem.save(filename);
+				String filename = null;
 				
-				feedback.append("disk saved");
+				if (analyzer.hasNext()) {
+					filename = analyzer.next();
+				} else {
+					isSuccess = false;
+				}
+				
+				if (analyzer.hasNext()) {
+					isSuccess = false;
+				}
+				
+				if (isSuccess) {
+					isSuccess = fileSystem.save(filename);
+					
+					feedback.append("disk saved");
+				}
 			} else {
 				isSuccess = false;
 			}
