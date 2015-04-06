@@ -1,7 +1,6 @@
 package filesystem;
 
 import java.nio.charset.Charset;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
@@ -264,32 +263,26 @@ public class FileSystemCore {
 		return directory;
 	}
 	
-	public String init(String filename) {
+	public boolean init(String filename) {
 		if (filename == null) {
-			return null;
+			return false;
 		}
 		
 		if (!_openFileTable[0].isFree()) {
-			return null;
+			return false;
 		}
 		
-		String feedback = null;
 		Path dir = Paths.get(filename);
 		
-		boolean isSuccess;
-		try {
-		    // Create the empty file with default permissions, etc.
-		    Files.createFile(dir);
+		boolean isSuccess = true;
+		
+		if (filename.isEmpty()) {
 		    byte[] fileArray = initializeFileArray();
 		    isSuccess = initializeLDisk(fileArray);
-		    isSuccess = isSuccess && writeFile(dir, fileArray);
-		    feedback = "disk initialized";
-		} catch (FileAlreadyExistsException x) {
+		} else if (Files.exists(dir)){
 			isSuccess = loadFile(dir);
-			feedback = "disk restored";
-		} catch (IOException x) {
-			isSuccess = false;
-			feedback = null;
+		} else {
+			return false;
 		}
 		
 		if (isSuccess) {
@@ -298,12 +291,11 @@ public class FileSystemCore {
 			
 			initializeDirectory(index);
 			
-			return feedback;
+			return true;
 		}
 		
-		return null;
+		return false;
 	}
-
 
 	public boolean save(String filename) {	
 		if (filename == null) {
@@ -317,7 +309,11 @@ public class FileSystemCore {
 		Path dir = Paths.get(filename);
 		
 		if (!Files.exists(dir)) {
-			return false;
+		    try {
+				Files.createFile(dir);
+			} catch (IOException e) {
+				return false;
+			}
 		}
 		
 		for (int i = 0; i < _openFileTable.length; i++) {
@@ -854,6 +850,7 @@ public class FileSystemCore {
 	}
 
 	
+	
 	private int allocateFreeBlock() {
 		int dataBlockIndex = 1;
 		byte[] bitmap = null;
@@ -1039,6 +1036,7 @@ public class FileSystemCore {
 		return saveBytes;
 	}
 
+	
 	private boolean updateDirectoryBuffer(int openFileTableIndex, int start,
 			int length, byte[] readBytes, byte[] saveBytes) {
 		byte[] buffer = _openFileTable[openFileTableIndex].getBuffer();

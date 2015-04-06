@@ -49,6 +49,10 @@ public class Shell {
 			String input = reader.nextLine();
 			input = input.trim();
 			
+			if (input == "") {
+				continue;
+			}
+			
 			Scanner analyzer = new Scanner(input);
 			String command = "";
 			
@@ -237,10 +241,13 @@ public class Shell {
 				
 			} else if ("in".equals(command)) {
 				String filename = null;
+				String msg = null;
 				if (analyzer.hasNext()) {
 					filename = analyzer.next();
+					msg = "disk restored";
 				} else {
-					isSuccess = false;
+					filename = "";
+					msg = "disk initialized";
 				}
 				
 				if (analyzer.hasNext()) {
@@ -248,13 +255,8 @@ public class Shell {
 				}
 				
 				if (isSuccess) {
-				String msg = fileSystem.init(filename);
-					if (msg != null) {
-						isSuccess = true;
-						feedback.append(msg);
-					} else {
-						isSuccess = false;
-					}
+					isSuccess = fileSystem.init(filename);
+					feedback.append(msg);
 				}
 			} else if ("sv".equals(command)) {
 				String filename = null;
