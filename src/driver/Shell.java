@@ -49,7 +49,7 @@ public class Shell {
 			String input = reader.nextLine();
 			input = input.trim();
 			
-			if (input == "") {
+			if (input.isEmpty()) {
 				continue;
 			}
 			
@@ -206,7 +206,7 @@ public class Shell {
 					isSuccess = false;
 				}
 				if (analyzer.hasNext()) {
-					index = analyzer.nextInt();
+					pos = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}

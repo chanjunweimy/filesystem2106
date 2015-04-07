@@ -6,6 +6,7 @@ public class OpenFileRow {
 	private int _descriptorIndex ;
 	private int _fileLength;
 	private int _currentBlockIndex;
+	private boolean _isStart;
 	
 	private int _bufferLength;
 	
@@ -23,6 +24,7 @@ public class OpenFileRow {
 		setFileLength(0);
 		setDescriptorIndex(NOT_FREE_INDEX);
 		setCurrentBlockIndex(NOT_FREE_INDEX);
+		_isStart = false;
 	}
 	
 	public boolean isFree() {
@@ -48,9 +50,10 @@ public class OpenFileRow {
 	
 	public int updateBuffer(byte[] buffer, int startPoint) {
 		int size = buffer.length - startPoint;
-		if (isFull()) {
+		if (isFull() && !_isStart) {
 			return size;
 		}
+		_isStart = false;
 		
 		int myBufferPosition = _currentPosition % _bufferLength;
 		int myBufferSpace = _bufferLength - myBufferPosition;
@@ -78,6 +81,39 @@ public class OpenFileRow {
 		}
 		
 		return size;
+	}
+	
+	public String getBufferPartition(int count) {
+		if (_currentPosition + count > _fileLength) {
+			return null;
+		}
+		
+		byte[] bufferPartition = null;
+		int size = count;
+		if (isFull() && !_isStart) {
+			return null;
+		}
+		_isStart = false;
+		
+		int myBufferPosition = _currentPosition % _bufferLength;
+		int myBufferSpace = _bufferLength - myBufferPosition;
+		
+		if (size > myBufferSpace) {
+			_currentPosition += myBufferSpace;
+			bufferPartition = new byte[myBufferSpace];		
+		} else {
+			_currentPosition += size;
+			bufferPartition = new byte[size];
+		}
+		
+		
+		for (int i = 0; i < bufferPartition.length; i++) {
+			bufferPartition[i] = _buffer[myBufferPosition];
+			myBufferPosition++;
+		}
+		String ret = new String(bufferPartition);
+		
+		return ret;
 	}
 	
 	public void setBuffer(byte[] buffer) {
@@ -113,6 +149,7 @@ public class OpenFileRow {
 	}
 
 	public void setCurrentBlockIndex(int currentBlockIndex) {
+		_isStart = true;
 		this._currentBlockIndex = currentBlockIndex;
 	}
 	

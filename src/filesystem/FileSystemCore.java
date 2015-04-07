@@ -98,7 +98,9 @@ public class FileSystemCore {
 		}
 
 		int freeDescriptorIndex = getAndUpdateFreeDescriptorIndex();
-		
+		if (freeDescriptorIndex == ERROR_INDEX) {
+			return false;
+		}
 		
 		byte[] saveBytes = retrieveDirEntryByteArray(filename,
 				freeDescriptorIndex);
@@ -157,7 +159,7 @@ public class FileSystemCore {
 		byte[] saveBytes = new byte[length];
 		
 		for (int i = 0; i < saveBytes.length; i++) {
-			saveBytes[i] = 0;
+			saveBytes[i] = -1;
 		}
 		
 		if (!updateDirectoryBuffer(openFileTableIndex, start, length, readBytes,
@@ -202,18 +204,60 @@ public class FileSystemCore {
 		return closeOdtBuffer(index);
 	}
 	
-	public String read(int index, int count) {
-		if (!saveOdtBuffer(index)) {
+	public String read(int index, int count) {		
+		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
+			return null;
+		} else if (_openFileTable[index].isFree()) {
+			return null;
+		} else if (!prepareOft(index)) {
 			return null;
 		}
 		
-		String readString = readOftRow(index, count, false);
-		return readString;
+		int fileLength = _openFileTable[index].getFileLength();
+		int curPos = _openFileTable[index].getCurrentPosition();
+		
+		if (curPos + count > fileLength) {
+			return null;
+		} else if (!saveOdtBuffer(index)) {
+			return null;
+		}
+		
+
+				
+		StringBuffer readBuffer = new StringBuffer("");
+		
+		
+		while (count > 0) {
+			String bufferString = _openFileTable[index].getBufferPartition(count);
+			
+			if (bufferString == null) {
+				return null;
+			}
+			
+			count -= bufferString.length();
+			readBuffer.append(bufferString);
+			
+			if (count <= 0) {
+				break;
+			}
+			
+			if (!saveOdtBuffer(index)) {
+				return null;
+			}
+			if (!prepareOft(index)) {
+				return null;
+			}
+
+		}
+		
+		return readBuffer.toString();
 	}
 	
 	public boolean write(int index, String writeString, int count) {
 		int curPos = _openFileTable[index].getCurrentPosition();
 		if (count + curPos > _maxFileLength) {
+			return false;
+		} else if (!prepareOft(index)) {
 			return false;
 		}
 		
@@ -239,15 +283,25 @@ public class FileSystemCore {
 			}
 			start = count - remaining;
 			remaining = _openFileTable[index].updateBuffer(writeBytes, start);
+			
 		}
 		
 		return true;
 	}
 	
 	public boolean lseek(int index, int pos) {
-		if (!saveOdtBuffer(index)) {
+		if (_openFileTable[index].isFree()) {
 			return false;
-		}
+		} else if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
+			return false;
+		} else if (index == ERROR_INDEX || pos == ERROR_INDEX){
+			return false;
+		} else if (!prepareOft(index)) {
+			return false;
+		} else if (!saveOdtBuffer(index)) {
+			return false;
+		} 
+		
 		int prevPos = _openFileTable[index].getCurrentPosition();
 		_openFileTable[index].setCurrentPosition(pos);
 		
@@ -255,11 +309,16 @@ public class FileSystemCore {
 			_openFileTable[index].setCurrentPosition(prevPos);
 			return false;
 		}
+				
 		return true;
 	}
 	
 	public String[] directory() {
-		String[] directory = (String[]) _directoryFileNames.toArray();
+		String[] directory = new String[_directoryFileNames.size()];
+		for (int i = 0; i < directory.length; i++) {
+			directory[i] = _directoryFileNames.get(i);
+		}
+		
 		return directory;
 	}
 	
@@ -396,8 +455,14 @@ public class FileSystemCore {
 			ldiskInteger[i] = 0;
 		}
 		
-		int blockIntegerStart = _descriptorPositions[0].getBlockIntegerNum();
-		int blockIntegerEnd = _descriptorPositions[_descriptorPositions.length - 1].getBlockIntegerNum();
+		int blockIntegerStart = _descriptorPositions[0].getBlockIntegerNum() +
+								_descriptorPositions[0].getBlockIndex() *
+								IOSystemCore.BLOCK_LENGTH /
+								PackableMemory.BYTE_PER_INT;
+		int blockIntegerEnd = 	_descriptorPositions[_descriptorPositions.length - 1].getBlockIntegerNum() +
+								_descriptorPositions[_descriptorPositions.length - 1].getBlockIndex() *
+								IOSystemCore.BLOCK_LENGTH /
+								PackableMemory.BYTE_PER_INT;
 		blockIntegerEnd += 3;
 		
 		for (int i = blockIntegerStart; i <= blockIntegerEnd; i++) {
@@ -436,15 +501,13 @@ public class FileSystemCore {
 	private boolean initializeLDisk(byte[] fileArray) {
 		int blockIndex = 0;
 		int blockLength = 0;
-		byte[] block = null;
+		byte[] block = new byte[IOSystemCore.BLOCK_LENGTH];
 		
 		for (int i = 0; i < fileArray.length; i++) {
-			if (block == null) {
-				block = new byte[IOSystemCore.BLOCK_LENGTH];
-			}
-			
+		
 			block[blockLength] = fileArray[i];
 			
+			blockLength++;
 			if (blockLength == IOSystemCore.BLOCK_LENGTH) {
 				try {
 					_iosystem.write_block(blockIndex, block);
@@ -453,7 +516,6 @@ public class FileSystemCore {
 				}
 				blockIndex++;
 				blockLength = 0;
-				block = null;
 			}
 		}
 		return true;
@@ -504,8 +566,7 @@ public class FileSystemCore {
 		_descriptorPositions = new DescriptorPosition[descriptorNumbers];
 		
 		for (int i = 0; i < _descriptorPositions.length; i++) {
-			int blockPosition = (blockInteger - 1) * PackableMemory.BYTE_PER_INT;
-			blockPosition += 1;
+			int blockPosition = blockInteger * PackableMemory.BYTE_PER_INT;
 			
 			_descriptorPositions[i] = new DescriptorPosition(blockIndex, 
 														     blockPosition,
@@ -739,7 +800,7 @@ public class FileSystemCore {
 			if (!updateOdtBufferAndBlock(openFileTableIndex)) {
 				return false;
 			}
-		} else if (_openFileTable[openFileTableIndex].isFull()) {
+		} else if (_openFileTable[openFileTableIndex].isFull()) {			
 			if (!saveOdtBuffer(openFileTableIndex)) {
 				return false;
 			} 
@@ -756,6 +817,10 @@ public class FileSystemCore {
 		curPosition /= IOSystemCore.BLOCK_LENGTH;
 		curPosition += 1;
 		int blockIndex = getCurrentBlockFromDescriptor(descriptorIndex, curPosition);
+		
+		if (blockIndex == 1) {
+			return false;
+		}
 		
 		_openFileTable[openFileTableIndex].setCurrentBlockIndex(blockIndex);
 
@@ -830,7 +895,9 @@ public class FileSystemCore {
 				return -1;
 			}
 			int position2 = position + PackableMemory.BYTE_PER_INT;
+			
 			_packMem.setMemory(descriptor);
+			
 			int fileLength = _packMem.unpack(position);
 			int firstBlock = _packMem.unpack(position2);
 			if (fileLength == 1 && firstBlock == 1) {
@@ -866,7 +933,7 @@ public class FileSystemCore {
 		
 		boolean isDone = false;
 		for (int i = DATA_BLOCK_START; i < BITS_PER_INTEGER; i++) {
-			int check = val1 & ~_mask[i];
+			int check = val1 & _mask[i];
 			if (check == 0) {
 				isDone = true;
 				dataBlockIndex = i;
@@ -880,7 +947,7 @@ public class FileSystemCore {
 			int val2 = _packMem.unpack(loc);
 			for (int i = 0; i < BITS_PER_INTEGER; i++) {
 				int index = i + BITS_PER_INTEGER;
-				int check = val2 & ~_mask[index];
+				int check = val2 & _mask[index];
 				if (check == 0) {
 					isDone = true;
 					dataBlockIndex = index;
@@ -918,7 +985,18 @@ public class FileSystemCore {
 		return true;
 	}
 
+	/**
+	 * This method no longer support reading non-directory file
+	 * @param index
+	 * @param end
+	 * @param isDirectory
+	 * @return
+	 */
 	private String readOftRow(int index, int end, boolean isDirectory) {
+		if (!isDirectory) {
+			return null;
+		}
+		
 		StringBuffer readBuffer = new StringBuffer("");
 		
 		int bufferLength = _openFileTable[index].getBufferLength();
@@ -953,6 +1031,7 @@ public class FileSystemCore {
 				byte[] fileBlock = _iosystem.read_block(blockIndex);
 				
 				_packMem.setMemory(fileBlock);
+				Vector <Byte> readBytes = new Vector <Byte>(length);
 				int pos = startPoint;
 				while (pos < length) {
 					if (isDirectory) {
@@ -960,15 +1039,21 @@ public class FileSystemCore {
 						readBuffer.append(readString);
 						pos += PackableMemory.BYTE_PER_INT;
 					} else {
-						byte[] readBytes = new byte[length];
-						for (int j = 0; j < readBytes.length; j++) {
-							readBytes[j] = fileBlock[pos];
-							pos++;
-						}
-						readBuffer.append(new String(readBytes));
+						readBytes.add(fileBlock[pos]);
+						pos++;
 					}
 					
 				}
+				
+				if (!isDirectory) {
+					byte[] readBytesArray = new byte[readBytes.size()];
+					
+					for (int j = 0; j < readBytes.size(); j++) {
+						readBytesArray[j] = readBytes.get(j).byteValue();
+					}
+					readBuffer.append(new String(readBytesArray));
+				}
+				
 				_openFileTable[index].setCurrentBlockIndex(blockIndex);
 				_openFileTable[index].setBuffer(fileBlock);
 				startPoint = 0;
@@ -1006,7 +1091,7 @@ public class FileSystemCore {
 				break;
 			}
 		}
-		
+				
 		byte[] outBytes = new byte[outLength];
 		for (int j = 0; j < outBytes.length; j++) {
 			outBytes[j] = saveBytes[j];
@@ -1059,9 +1144,7 @@ public class FileSystemCore {
 			
 			if (!prepareOft(openFileTableIndex)) {
 				return false;
-			} else {
-				buffer = _openFileTable[openFileTableIndex].getBuffer();
-			}
+			} 
 		}
 		return true;
 	}
