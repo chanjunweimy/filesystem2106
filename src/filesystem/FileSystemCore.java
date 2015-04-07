@@ -88,14 +88,14 @@ public class FileSystemCore {
 			return false;
 		} else if (_filenameAndIndexMap.containsKey(filename)) {
 			return false;
+		} else if (!prepareOft(FILE_SYSTEM_INDEX)) {
+			return false;
 		}
-		
-		
-		
+				
 		int openFileTableIndex = FILE_SYSTEM_INDEX;
 		
 		int start = 0;
-		if (!lseek(openFileTableIndex, start)){
+		if (!seek(openFileTableIndex, start)){
 			return false;
 		}
 
@@ -137,6 +137,8 @@ public class FileSystemCore {
 		} else if (_directoryFileNames.size() <= 0) {
 			return false;
 		} else if (!_filenameAndIndexMap.containsKey(filename)) {
+			return false;
+		} else if (!prepareOft(FILE_SYSTEM_INDEX)) {
 			return false;
 		}
 		
@@ -332,7 +334,7 @@ public class FileSystemCore {
 			return false;
 		} else if (index == ERROR_INDEX || pos == ERROR_INDEX){
 			return false;
-		} else if (index < 0 || index >= _openFileTable.length) {
+		} else if (index < 0 || index >= _openFileTable.length || index == FILE_SYSTEM_INDEX) {
 			return false;
 		} else if (_openFileTable[index].isFree()) {
 			return false;
@@ -344,16 +346,10 @@ public class FileSystemCore {
 			return false;
 		} 
 		
-		int prevPos = _openFileTable[index].getCurrentPosition();
-		_openFileTable[index].setCurrentPosition(pos);
-		
-		if (!updateOdtBufferAndBlock(index)) {
-			_openFileTable[index].setCurrentPosition(prevPos);
-			return false;
-		}
-				
-		return true;
+		return seek(index, pos);
 	}
+
+	
 	
 	public String[] directory() {
 		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
@@ -1180,7 +1176,9 @@ public class FileSystemCore {
 		while (true) {
 			boolean isReplacable = true;
 			for (int i = start; i < start + length; i++) {
-				if (buffer[i % IOSystemCore.BLOCK_LENGTH] != readBytes[i % (PackableMemory.BYTE_PER_INT * INTEGER_PER_FILE_DIRECTORY)]) {
+				if (buffer[i % IOSystemCore.BLOCK_LENGTH] != 
+					readBytes[i % (PackableMemory.BYTE_PER_INT * 
+							INTEGER_PER_FILE_DIRECTORY)]) {
 					isReplacable = false;
 					break;
 				}
@@ -1198,7 +1196,9 @@ public class FileSystemCore {
 						
 			if (!prepareOft(openFileTableIndex)) {
 				return false;
-			} 
+			} else {
+				buffer = _openFileTable[openFileTableIndex].getBuffer();
+			}
 		}
 		return true;
 	}
@@ -1220,6 +1220,25 @@ public class FileSystemCore {
 		}
 		return true;
 	}
+
+	private boolean seek(int index, int pos) {
+		if (!prepareOft(index)) {
+			return false;
+		} else if (!saveOdtBuffer(index)) {
+			return false;
+		} 
+		
+		int prevPos = _openFileTable[index].getCurrentPosition();
+		_openFileTable[index].setCurrentPosition(pos);
+		
+		if (!updateOdtBufferAndBlock(index)) {
+			_openFileTable[index].setCurrentPosition(prevPos);
+			return false;
+		}
+				
+		return true;
+	}
+
 }
 	
 	
