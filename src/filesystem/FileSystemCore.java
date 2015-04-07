@@ -88,8 +88,6 @@ public class FileSystemCore {
 			return false;
 		} else if (_filenameAndIndexMap.containsKey(filename)) {
 			return false;
-		} else if (!prepareOft(FILE_SYSTEM_INDEX)) {
-			return false;
 		}
 				
 		int openFileTableIndex = FILE_SYSTEM_INDEX;
@@ -138,8 +136,6 @@ public class FileSystemCore {
 			return false;
 		} else if (!_filenameAndIndexMap.containsKey(filename)) {
 			return false;
-		} else if (!prepareOft(FILE_SYSTEM_INDEX)) {
-			return false;
 		}
 		
 		int decriptorIndex = _filenameAndIndexMap.get(filename).intValue();
@@ -154,7 +150,7 @@ public class FileSystemCore {
 		int openFileTableIndex = FILE_SYSTEM_INDEX;
 
 		int start = 0;
-		if (!lseek(openFileTableIndex, start)){
+		if (!seek(openFileTableIndex, start)){
 			return false;
 		}
 		
@@ -163,7 +159,7 @@ public class FileSystemCore {
 		byte[] readBytes = retrieveDirEntryByteArray(filename,
 				decriptorIndex);
 		byte[] saveBytes = new byte[length];
-		
+				
 		for (int i = 0; i < saveBytes.length; i++) {
 			saveBytes[i] = 0;
 		}
