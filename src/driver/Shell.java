@@ -1,5 +1,6 @@
 package driver;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -22,19 +23,18 @@ public class Shell {
 			String fileIn = args[0];
 			String fileOut = args[1];
 			
-			Scanner reader = new Scanner(fileIn);
+			File file = new File(fileIn);
+			Scanner reader = null;			
 			PrintStream out = null;
 			try {
+				reader = new Scanner(file);
 				out = new PrintStream(new FileOutputStream(fileOut));
-			} catch (FileNotFoundException e) {
-				System.err.println(e.getMessage());
-				System.exit(-1);
-			}
-			
-			if (out != null) {
 				System.setOut(out);
 				getUserInputs(fileSystem, reader);
 				reader.close();
+			} catch (FileNotFoundException e) {
+				System.err.println(e.getMessage());
+				System.exit(-1);
 			}
 			
 		} else {
@@ -43,13 +43,14 @@ public class Shell {
 	}
 
 	private void getUserInputs(FileSystemCore fileSystem, Scanner reader) {
-		while(true) {
+		while(reader.hasNextLine()) {
 			boolean isSuccess = true;
-			
+				
 			String input = reader.nextLine();
 			input = input.trim();
 			
 			if (input.isEmpty()) {
+				System.out.println("");
 				continue;
 			}
 			
