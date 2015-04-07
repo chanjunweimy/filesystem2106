@@ -74,7 +74,7 @@ public class Shell {
 					isSuccess = false;
 				}
 				
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					isSuccess = false;
 				}
 				
@@ -91,7 +91,7 @@ public class Shell {
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					isSuccess = false;
 				}
 				
@@ -109,7 +109,7 @@ public class Shell {
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					isSuccess = false;
 				}
 				
@@ -123,12 +123,12 @@ public class Shell {
 				}
 			} else if ("cl".equals(command)) {
 				int index = FileSystemCore.ERROR_INDEX;
-				if (analyzer.hasNext()) {
+				if (analyzer.hasNextInt()) {
 					index = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					isSuccess = false;
 				}
 				
@@ -143,18 +143,18 @@ public class Shell {
 				int index = FileSystemCore.ERROR_INDEX;
 				int count = FileSystemCore.ERROR_INDEX;
 				
-				if (analyzer.hasNext()) {
+				if (analyzer.hasNextInt()) {
 					index = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
 				
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNextInt()) {
 					count = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					isSuccess = false;
 				}
 				
@@ -173,22 +173,22 @@ public class Shell {
 				String writeString = null;
 				int count = FileSystemCore.ERROR_INDEX;
 				
-				if (analyzer.hasNext()) {
+				if (analyzer.hasNextInt()) {
 					index = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					writeString = analyzer.next();
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNextInt()) {
 					count = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNext()) {
 					isSuccess = false;
 				}
 				
@@ -201,12 +201,12 @@ public class Shell {
 				int index = FileSystemCore.ERROR_INDEX;
 				int pos = FileSystemCore.ERROR_INDEX;
 				
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNextInt()) {
 					index = analyzer.nextInt();
 				} else {
 					isSuccess = false;
 				}
-				if (analyzer.hasNext()) {
+				if (isSuccess && analyzer.hasNextInt()) {
 					pos = analyzer.nextInt();
 				} else {
 					isSuccess = false;
