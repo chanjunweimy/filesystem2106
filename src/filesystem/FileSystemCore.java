@@ -82,6 +82,8 @@ public class FileSystemCore {
 			return false;
 		} else if (filename.length() > MAX_FILENAME_LENGTH) {
 			return false;
+		} else if (filename.isEmpty()){
+			return false;
 		} else if (_directoryFileNames.size() >= _maxFileNum) {
 			return false;
 		} else if (_filenameAndIndexMap.containsKey(filename)) {
@@ -129,6 +131,8 @@ public class FileSystemCore {
 		} else if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return false;
 		} else if (filename.length() > MAX_FILENAME_LENGTH) {
+			return false;
+		} else if (filename.isEmpty()) {
 			return false;
 		} else if (_directoryFileNames.size() <= 0) {
 			return false;
@@ -179,8 +183,23 @@ public class FileSystemCore {
 	public int open(String filename) {
 		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return ERROR_INDEX;
+		} else if (filename == null) {
+			return ERROR_INDEX;
+		} else if (filename.isEmpty()) {
+			return ERROR_INDEX;
+		} else if (filename.length() > MAX_FILENAME_LENGTH) {
+			return ERROR_INDEX;
 		} else if (!_filenameAndIndexMap.containsKey(filename)) {
 			return ERROR_INDEX;
+		}
+		
+		for (int i = 1; i < _openFileTable.length; i++) {
+			if (!_openFileTable[i].isFree()) {
+				int descriptorIndex = _filenameAndIndexMap.get(filename).intValue();
+				if (_openFileTable[i].getDescriptorIndex() == descriptorIndex) {
+					return ERROR_INDEX;
+				}
+			}
 		}
 		
 		int index = ERROR_INDEX;
@@ -199,7 +218,13 @@ public class FileSystemCore {
 	public boolean close(int index) {
 		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return false;
-		} 
+		} else if (index == FILE_SYSTEM_INDEX) {
+			return false;
+		} else if (index < 0 || index >= _openFileTable.length) {
+			return false;
+		} else if (_openFileTable[index].isFree()) {
+			return false;
+		}
 		
 		return closeOdtBuffer(index);
 	}
@@ -207,7 +232,11 @@ public class FileSystemCore {
 	public String read(int index, int count) {		
 		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return null;
+		} else if (index == FILE_SYSTEM_INDEX || index < 0 || index >= _openFileTable.length) {
+			return null;
 		} else if (_openFileTable[index].isFree()) {
+			return null;
+		} else if (count < 0) {
 			return null;
 		} else if (!prepareOft(index)) {
 			return null;
@@ -254,10 +283,19 @@ public class FileSystemCore {
 	}
 	
 	public boolean write(int index, String writeString, int count) {
-		int curPos = _openFileTable[index].getCurrentPosition();
-		if (count + curPos > _maxFileLength) {
+		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return false;
-		} else if (!prepareOft(index)) {
+		} else if (index == FILE_SYSTEM_INDEX) {
+			return false;
+		} else if (index < 0 || index >= _openFileTable.length) {
+			return false;
+		} else if (count < 0) {
+			return false;
+		} else if (writeString == null) {
+			return false;
+		} else if (writeString.length() != 1) {
+			return false;
+		} else if (_openFileTable[index].isFree()) {
 			return false;
 		}
 		
@@ -270,6 +308,14 @@ public class FileSystemCore {
 		for (int i = 0; i < writeBytes.length; i++) {
 			writeBytes[i] = (byte) writeChar;
 		}
+		
+		int curPos = _openFileTable[index].getCurrentPosition();
+		if (count + curPos > _maxFileLength) {
+			return false;
+		} else if (!prepareOft(index)) {
+			return false;
+		}
+		
 		
 		int start = 0;
 		int remaining = _openFileTable[index].updateBuffer(writeBytes, start);
@@ -290,11 +336,15 @@ public class FileSystemCore {
 	}
 	
 	public boolean lseek(int index, int pos) {
-		if (_openFileTable[index].isFree()) {
-			return false;
-		} else if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
+		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return false;
 		} else if (index == ERROR_INDEX || pos == ERROR_INDEX){
+			return false;
+		} else if (index < 0 || index >= _openFileTable.length) {
+			return false;
+		} else if (_openFileTable[index].isFree()) {
+			return false;
+		} else if (pos < 0 || pos > _openFileTable[index].getFileLength()) {
 			return false;
 		} else if (!prepareOft(index)) {
 			return false;
@@ -314,6 +364,10 @@ public class FileSystemCore {
 	}
 	
 	public String[] directory() {
+		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
+			return null;
+		} 
+		
 		String[] directory = new String[_directoryFileNames.size()];
 		for (int i = 0; i < directory.length; i++) {
 			directory[i] = _directoryFileNames.get(i);
@@ -325,9 +379,7 @@ public class FileSystemCore {
 	public boolean init(String filename) {
 		if (filename == null) {
 			return false;
-		}
-		
-		if (!_openFileTable[0].isFree()) {
+		} else if (!_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return false;
 		}
 		
@@ -359,9 +411,9 @@ public class FileSystemCore {
 	public boolean save(String filename) {	
 		if (filename == null) {
 			return false;
-		}
-		
-		if (_openFileTable[0].isFree()) {
+		} else if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
+			return false;
+		} else if (filename.isEmpty()) {
 			return false;
 		}
 		
