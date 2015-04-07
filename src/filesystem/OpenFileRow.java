@@ -76,6 +76,8 @@ public class OpenFileRow {
 			}
 		}
 		
+		System.err.println(new String(_buffer));
+		
 		if (_currentPosition > _fileLength) {
 			setFileLength(_currentPosition);
 		}

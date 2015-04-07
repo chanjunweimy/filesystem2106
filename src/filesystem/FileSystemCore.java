@@ -163,7 +163,7 @@ public class FileSystemCore {
 		byte[] saveBytes = new byte[length];
 		
 		for (int i = 0; i < saveBytes.length; i++) {
-			saveBytes[i] = -1;
+			saveBytes[i] = 0;
 		}
 		
 		if (!updateDirectoryBuffer(openFileTableIndex, start, length, readBytes,
@@ -318,22 +318,14 @@ public class FileSystemCore {
 		
 		
 		int start = 0;
-		int remaining = _openFileTable[index].updateBuffer(writeBytes, start);
-		
-		while (remaining > 0) {
-			if (!saveOdtBuffer(index)) {
-				return false;
-			}
-			if (!prepareOft(index)) {
-				return false;
-			}
-			start = count - remaining;
-			remaining = _openFileTable[index].updateBuffer(writeBytes, start);
-			
+		if (!updateOftBuffer(index, count, writeBytes, start)) {
+			return false;
 		}
 		
 		return true;
 	}
+
+	
 	
 	public boolean lseek(int index, int pos) {
 		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
@@ -868,6 +860,9 @@ public class FileSystemCore {
 		int curPosition = _openFileTable[openFileTableIndex].getCurrentPosition();
 		curPosition /= IOSystemCore.BLOCK_LENGTH;
 		curPosition += 1;
+		
+		
+		
 		int blockIndex = getCurrentBlockFromDescriptor(descriptorIndex, curPosition);
 		
 		if (blockIndex == 1) {
@@ -907,6 +902,10 @@ public class FileSystemCore {
 		
 		int position = _descriptorPositions[descriptorIndex].getBlockPosition();
 		position += curPosition * PackableMemory.BYTE_PER_INT;
+		
+		if (position >= IOSystemCore.BLOCK_LENGTH) {
+			return 1;
+		}
 		
 		_packMem.setMemory(descriptor);
 		
@@ -1181,22 +1180,43 @@ public class FileSystemCore {
 		while (true) {
 			boolean isReplacable = true;
 			for (int i = start; i < start + length; i++) {
-				if (buffer[i] != readBytes[i]) {
+				if (buffer[i % IOSystemCore.BLOCK_LENGTH] != readBytes[i % (PackableMemory.BYTE_PER_INT * INTEGER_PER_FILE_DIRECTORY)]) {
 					isReplacable = false;
 					break;
 				}
 			}
-			
+						
 			if (isReplacable) {
-				_openFileTable[openFileTableIndex].updateBuffer(saveBytes, start);
+				int startPoint = 0;
+				if (!updateOftBuffer(openFileTableIndex, length, saveBytes, startPoint)) {
+					return false;
+				}
 				break;
 			}
 			start += length;
 			_openFileTable[openFileTableIndex].setCurrentPosition(start);
-			
+						
 			if (!prepareOft(openFileTableIndex)) {
 				return false;
 			} 
+		}
+		return true;
+	}
+	
+	private boolean updateOftBuffer(int index, int count, byte[] writeBytes,
+			int start) {
+		int remaining = _openFileTable[index].updateBuffer(writeBytes, start);
+		
+		while (remaining > 0) {
+			if (!saveOdtBuffer(index)) {
+				return false;
+			}
+			if (!prepareOft(index)) {
+				return false;
+			}
+			start = count - remaining;
+			remaining = _openFileTable[index].updateBuffer(writeBytes, start);
+			
 		}
 		return true;
 	}
