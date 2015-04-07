@@ -1088,7 +1088,7 @@ public class FileSystemCore {
 					if (isDirectory) {
 						String readString = readForDirectory(fileBlock, pos);
 						readBuffer.append(readString);
-						pos += PackableMemory.BYTE_PER_INT;
+						pos += PackableMemory.BYTE_PER_INT * INTEGER_PER_FILE_DIRECTORY;
 					} else {
 						readBytes.add(fileBlock[pos]);
 						pos++;
