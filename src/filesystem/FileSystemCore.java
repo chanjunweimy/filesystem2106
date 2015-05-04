@@ -196,7 +196,7 @@ public class FileSystemCore {
 				int descriptorIndex = _filenameAndIndexMap.get(filename).intValue();
 				if (_openFileTable[i].getDescriptorIndex() == descriptorIndex) {
 					return ERROR_INDEX;
-				}
+				}	
 			}
 		}
 		
@@ -206,6 +206,10 @@ public class FileSystemCore {
 				index = i;
 				int descriptorIndex = _filenameAndIndexMap.get(filename).intValue();
 				_openFileTable[i].setDescriptorIndex(descriptorIndex);	
+				if (!updateFileLengthToOft(i)) {
+					_openFileTable[i].freeOpenFileRow();
+					return ERROR_INDEX;
+				}
 				break;
 			}
 		}
@@ -325,7 +329,7 @@ public class FileSystemCore {
 
 	
 	
-	public boolean lseek(int index, int pos) {
+	public boolean lseek(int index, int pos) {		
 		if (_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
 			return false;
 		} else if (index == ERROR_INDEX || pos == ERROR_INDEX){
@@ -363,15 +367,21 @@ public class FileSystemCore {
 	public boolean init(String filename) {
 		if (filename == null) {
 			return false;
-		} else if (!_openFileTable[FILE_SYSTEM_INDEX].isFree()) {
-			return false;
 		}
+		
+		
 		
 		Path dir = Paths.get(filename);
 		
 		boolean isSuccess = true;
 		
 		if (filename.isEmpty()) {
+			for (int i = 0; i < _openFileTable.length; i++) {
+				_openFileTable[i].freeOpenFileRow();
+			}
+			_directoryFileNames = new Vector<String>(_maxFileNum * 2);
+			_filenameAndIndexMap = new HashMap<String, Integer>(_maxFileNum * 2);
+			
 		    byte[] fileArray = initializeFileArray();
 		    isSuccess = initializeLDisk(fileArray);
 		} else if (Files.exists(dir)){
@@ -647,7 +657,7 @@ public class FileSystemCore {
 		int fileLength = _openFileTable[odtIndex].getFileLength();
 		int blockIndex = _openFileTable[odtIndex].getCurrentBlockIndex();
 		byte[] block = _openFileTable[odtIndex].getBuffer();
-		
+				
 		if (!updateFileLengthInDescriptor(descriptorIndex, fileLength)) {
 			return false;
 		}
